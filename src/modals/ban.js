@@ -16,11 +16,11 @@ module.exports = async function (
       ephemeral: true,
     });
 
-  const channel = modal.guild.channels.cache.get(process.env.VOTING_CHANNEL_ID);
+  const channel = await modal.guild.channels.fetch(process.env.VOTING_CHANNEL_ID).catch(v => v);
 
   if (!channel || channel.type !== Discord.ChannelType.GuildText)
     return modal.reply({
-      content: "Vote channel not found. Contact an admin.",
+      content: `Vote channel not found. Contact an admin.\n\`\`\`\n${new Error(!channel.message ? "Channel is not of type GUILD_TEXT: " + Discord.ChannelType[channel.type] : channel.message)}\n\`\`\``,
       ephemeral: true,
     });
 

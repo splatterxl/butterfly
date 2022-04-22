@@ -14,7 +14,7 @@ const client = new Discord.Client({
     parse: [],
   },
   presence: {
-    status: "invisible",
+    status: "afk",
   },
 });
 

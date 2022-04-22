@@ -24,6 +24,13 @@ module.exports = function (/** @type {Discord.CommandInteraction} */ command) {
       });
     }
 
+    let member = command.options.getMember("user");
+
+    if (!member.manageable) return command.reply({
+      content: "Missing permissions",
+      ephemeral: true
+    })
+
     return command.showModal(
       new Discord.ModalBuilder()
         .setTitle(`Ban @${user.username} (${user.id})?`)
@@ -100,7 +107,6 @@ module.exports.component = async function (
       if (isCoreStaff) return respondWithDropdown(true);
     case "+1": {
       const embed = new Discord.EmbedBuilder(message.embeds[0].data);
-      try {
         const votes = prepareVote("up", embed.data, interaction.user.id);
         embed.setFooter(votes.footer);
         embed.setFields(...votes.fields);
@@ -109,12 +115,6 @@ module.exports.component = async function (
         await message.edit({
           embeds: [embed.toJSON()],
         });
-      } catch (e) {
-        interaction.reply({
-          content: e.message,
-          ephemeral: true,
-        });
-      }
 
       break;
     }
@@ -122,7 +122,6 @@ module.exports.component = async function (
       if (isCoreStaff) return respondWithDropdown(false);
     case "-1": {
       const embed = new Discord.EmbedBuilder(message.embeds[0].data);
-      try {
         const votes = prepareVote("down", embed.data, interaction.user.id);
         embed.setFooter(votes.footer);
         embed.setFields(...votes.fields);
@@ -131,12 +130,6 @@ module.exports.component = async function (
         await message.edit({
           embeds: [embed.toJSON()],
         });
-      } catch (e) {
-        interaction.reply({
-          content: e.message,
-          ephemeral: true,
-        });
-      }
 
       break;
     }
@@ -147,7 +140,9 @@ module.exports.component = async function (
           ephemeral: true,
         });
         break;
-      }
+      } 
+
+      if (message.components[0]?.components[0]?.label?.includes("Vetoed")) return interaction.deferUpdate();
 
       let reason = message.embeds[0].description;
       let user = message.embeds[0].footer.text.split("| ")[1];
@@ -156,9 +151,6 @@ module.exports.component = async function (
 
       if (!member.bannable) {
         // @ts-ignore
-        message.edit?.({
-          components: [],
-        });
         return interaction.reply({
           content: "I can't ban that user.",
           ephemeral: true,
@@ -181,14 +173,26 @@ module.exports.component = async function (
                 .setCustomId("ban.unban." + mid)
                 .setLabel(`Approved by ${interaction.user.tag}`)
                 .setStyle(Discord.ButtonStyle.Secondary)
-                .setDisabled(true)
             )
             .toJSON(),
         ],
       });
-      message.reply({
-        content: `Banned **${member.user.tag}** (${member.user.id})!`,
+      await message.reply({
+        content: `Banned **${member.user.tag}**`,
         ephemeral: true,
+      });
+
+      await interaction.message.edit?.({
+        components: [
+          new Discord.ActionRowBuilder()
+            .addComponents(
+              new Discord.ButtonBuilder()
+                .setCustomId("ban.unban." + mid)
+                .setLabel(`Undo`)
+                .setStyle(Discord.ButtonStyle.Secondary)
+            )
+            .toJSON(),
+        ],
       });
 
       break;
@@ -199,6 +203,8 @@ module.exports.component = async function (
           content: "I don't think you're meant to have this button... 🤨",
           ephemeral: true,
         });
+
+      if (message.components[0]?.components[0]?.label?.includes("Vetoed")) return interaction.deferUpdate();
 
       await interaction.deferUpdate();
 
@@ -274,9 +280,6 @@ module.exports.component = async function (
 function prepareVote(dir = "up", text, userId) {
   const [votes, user] = text.footer.text.split(" | ");
 
-  if (text.fields?.[0]?.value.includes(userId) ?? false)
-    throw new Error("User has already voted");
-
   if (votes === "No votes yet...")
     return {
       footer: {
@@ -291,18 +294,23 @@ function prepareVote(dir = "up", text, userId) {
     };
 
   // text.fields[0].value: "+1: 123456789, 348981\n-1: 123456789, 348981"
-  const [up, down] = text.fields[0].value
+  const [up = [], down = []] = text.fields[0].value
     .split("\n")
     .map((v) => v.split(": ")[1].split(", "));
 
-  const data = {
-    up: dir === "up" ? [...new Set([...up, userId])] : up,
-    down: dir === "down" ? [...new Set([...down, userId])] : down,
-  };
+  const alreadyCasted = getVoteForUser({ up, down }, userId);
+
+  if (alreadyCasted === dir) return text;
+
+  let data = { up, down };
+
+  data[dir].push(userId);
+
+  if (alreadyCasted) data[not(dir)] = data[not(dir)].filter(v => v !== userId);
 
   return {
     footer: {
-      text: `up: ${data.up.length}, down: ${data.down.length} | ${user}`,
+      text: `up: ${data.up?.length ?? 0}, down: ${data.down?.length ?? 0} | ${user}`,
     },
     fields: [
       {
@@ -320,3 +328,11 @@ function generateVotes(votes) {
     votes.down?.length ? `-1: ${votes.down.join(", ")}` : ""
   }`;
 }
+
+// given `data` { up: [123456789], down: [348981] },
+// and `user` 123456789, return "up"
+function getVoteForUser(data, u) {
+  return Object.entries(data).filter(([, v]) => v?.includes(u)).map(([k]) => k)[0]
+}
+
+const not = dir => dir === "up" ? "down" : "up";
