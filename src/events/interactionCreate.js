@@ -21,7 +21,7 @@ module.exports = async function (
       await interactionData(interaction);
     } else {
       await interaction.reply(
-        "Command not found, this should never happen. Ping **@Splatterxl#8999**."
+        "Command not found, this should never happen. Ping **@splatter.8999**."
       );
     }
   } else if (interaction.isModalSubmit()) {
