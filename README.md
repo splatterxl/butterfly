@@ -46,4 +46,4 @@ By design, Butterfly does not use a database. All data is contained in human rea
 
 ## Contributing 
 
-Contributions are not needed at this time. Security reports may go to my Discord, `Splatterxl#8999`.
+Contributions are not needed at this time. Security reports may go to my Discord, `splatter.#8999`.
