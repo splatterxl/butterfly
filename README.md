@@ -1,10 +1,10 @@
 # Butterfly
 
-A small moderation bot to facilitate ban votes & mod logs in the r/TransPlace server.
+A small moderation bot to facilitate ban votes & mod logs. Originally made for the TransPlace server.
 
 ## Usage
 
-Butterfly provides a few slash commands as entrypoints to the application.
+Butterfly provides a slash command as an entrypoint to the application.
 
 ### `/ban <user:USER>`
 
@@ -15,7 +15,7 @@ Responds with a modal which accepts a reason.
 Butterfly can be cloned via Git and requires Node.js >= v17.6.
 
 ```sh 
-git clone git@github.com:splatterxl/butterfly # you will be asked to authenticate 
+git clone git@github.com:splatterxl/butterfly
 
 cd butterfly
 pnpm i 
@@ -44,6 +44,8 @@ MOD_LOG_POST_DETAILS=# whether to post details of mod logs, defaults to true
 
 By design, Butterfly does not use a database. All data is contained in human readable format in the vote embed, and parsed whenever an action is executed.
 
+TODO: use a database
+
 ## Contributing 
 
-Contributions are not needed at this time. Security reports may go to my Discord, `splatter.#8999`.
+Contributions are welcome, esp. upgrading library versions.
